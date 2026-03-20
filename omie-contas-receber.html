@@ -361,7 +361,7 @@ try{
   if(ALL.length<antes)console.log(`Excluídos ${antes-ALL.length} títulos de categorias de transferência`);
   popFilters();filtrar();
   setSt(true,`${ALL.length} títulos · ${hora()}`);
-}catch(e){console.error(e);setSt(false,e.message);alert('Erro: '+e.message)}
+}catch(e){console.error(e);setSt(false,e.message)}
 hide()}
 
 async function loadCats(){try{let p=1,tp=1;while(p<=tp){const r=await omie('/api/v1/geral/categorias/','ListarCategorias',{pagina:p,registros_por_pagina:500});if(r.categoria_cadastro)r.categoria_cadastro.forEach(c=>{CATS[c.codigo]=c.descricao||c.codigo});tp=r.total_de_paginas||1;p++}}catch(e){console.warn('Categorias:',e.message)}}
