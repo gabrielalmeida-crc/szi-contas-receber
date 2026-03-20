@@ -1,0 +1,12 @@
+{
+  "name": "szi-contas-receber",
+  "version": "1.0.0",
+  "description": "Dashboard de Contas a Receber — Omie API",
+  "main": "servidor.js",
+  "scripts": {
+    "start": "node servidor.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

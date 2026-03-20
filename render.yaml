@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: szi-contas-receber
+    runtime: node
+    plan: free
+    buildCommand: ""
+    startCommand: node servidor.js
+    envVars:
+      - key: NODE_ENV
+        value: production
