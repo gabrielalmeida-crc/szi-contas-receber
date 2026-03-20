@@ -317,9 +317,10 @@ const $=id=>document.getElementById(id);
 
 // ═══════ CONFIG ═══════
 const CK='omie_cr2';
-// Detecta automaticamente: se aberto via servidor, usa a mesma origem. Se local, usa localhost.
+const DEFAULT_KEY='6650872682454';
+const DEFAULT_SECRET='a836e67db4a99efb6672cac87cefb751';
 function baseURL(){const c=cfg();if(c.proxy)return c.proxy;const loc=window.location;if(loc.protocol==='http:'||loc.protocol==='https:')return loc.origin;return'http://localhost:3737'}
-const cfg=()=>{try{return JSON.parse(localStorage.getItem(CK))||{}}catch{return{}}};
+const cfg=()=>{try{const s=JSON.parse(localStorage.getItem(CK))||{};return{app_key:s.app_key||DEFAULT_KEY,app_secret:s.app_secret||DEFAULT_SECRET,proxy:s.proxy||''}}catch{return{app_key:DEFAULT_KEY,app_secret:DEFAULT_SECRET,proxy:''}}};
 function abrirCfg(){const c=cfg();$('cfg-key').value=c.app_key||'';$('cfg-secret').value=c.app_secret||'';$('cfg-proxy').value=c.proxy||'';$('m-cfg').classList.remove('h')}
 function salvarCfg(){const proxy=$('cfg-proxy').value.trim();localStorage.setItem(CK,JSON.stringify({app_key:$('cfg-key').value.trim(),app_secret:$('cfg-secret').value.trim(),proxy:proxy}));$('m-cfg').classList.add('h');carregarTudo()}
 
