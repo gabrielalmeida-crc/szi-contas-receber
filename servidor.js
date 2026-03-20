@@ -73,6 +73,56 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // ── Slack ──
+  if (req.method === 'POST' && pathname === '/api/slack') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      let payload;
+      try { payload = JSON.parse(body); }
+      catch { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'JSON inválido' })); return; }
+
+      const SLACK_TOKEN = process.env.SLACK_BOT_TOKEN || '';
+      if (!SLACK_TOKEN) { res.writeHead(500, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ ok: false, error: 'SLACK_BOT_TOKEN não configurado no servidor' })); return; }
+      const postData = JSON.stringify({
+        channel: payload.channel_id,
+        text: payload.message,
+        mrkdwn: true
+      });
+
+      const opts = {
+        hostname: 'slack.com',
+        port: 443,
+        path: '/api/chat.postMessage',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Authorization': `Bearer ${SLACK_TOKEN}`,
+          'Content-Length': Buffer.byteLength(postData)
+        }
+      };
+
+      const slackReq = https.request(opts, slackRes => {
+        let data = '';
+        slackRes.on('data', chunk => { data += chunk; });
+        slackRes.on('end', () => {
+          res.writeHead(slackRes.statusCode, { 'Content-Type': 'application/json' });
+          res.end(data);
+        });
+      });
+
+      slackReq.on('error', e => {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: `Erro Slack: ${e.message}` }));
+      });
+
+      slackReq.setTimeout(15000, () => { slackReq.destroy(); });
+      slackReq.write(postData);
+      slackReq.end();
+    });
+    return;
+  }
+
   // ── 404 ──
   res.writeHead(404, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify({ error: 'Rota não encontrada' }));

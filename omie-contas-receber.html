@@ -565,21 +565,27 @@ function copiarResumo(){
 
 async function enviarSlack(){
   const chan=$('slk-chan').value;
-  if(!chan){alert('Selecione um canal');return}
+  if(!chan){const el=document.createElement('div');el.style.cssText='position:fixed;top:20px;right:20px;background:#de350b;color:#fff;padding:12px 20px;border-radius:8px;z-index:9999;font-size:13px;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,.15)';el.textContent='Selecione um canal';document.body.appendChild(el);setTimeout(()=>el.remove(),3000);return}
   const msg=gerarResumo();
+  const btn=document.querySelector('.btn-slack[onclick="enviarSlack()"]');
+  if(btn){btn.disabled=true;btn.textContent='Enviando...';}
   try{
-    const c=cfg();
-    const r=await fetch(c.proxy+'/api/slack',{
+    const r=await fetch(baseURL()+'/api/slack',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({channel_id:chan,message:msg})
     });
     const j=await r.json();
-    if(j.ok){alert('Enviado com sucesso!');$('m-slack').classList.add('h')}
-    else{alert('Use "Copiar Texto" e cole no Slack manualmente.\n\n(Para envio direto, configure um Slack Bot Token no servidor)')}
+    if(j.ok){
+      $('m-slack').classList.add('h');
+      const el=document.createElement('div');el.style.cssText='position:fixed;top:20px;right:20px;background:#00875a;color:#fff;padding:12px 20px;border-radius:8px;z-index:9999;font-size:13px;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,.15)';el.textContent='✅ Enviado com sucesso no Slack!';document.body.appendChild(el);setTimeout(()=>el.remove(),4000);
+    } else {
+      const el=document.createElement('div');el.style.cssText='position:fixed;top:20px;right:20px;background:#de350b;color:#fff;padding:12px 20px;border-radius:8px;z-index:9999;font-size:13px;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,.15);max-width:400px';el.textContent='Erro: '+(j.error||'Falha ao enviar. Verifique se o bot foi adicionado ao canal.');document.body.appendChild(el);setTimeout(()=>el.remove(),5000);
+    }
   }catch(e){
-    alert('Servidor não suporta envio direto.\nUse "Copiar Texto" para colar no Slack.');
+    const el=document.createElement('div');el.style.cssText='position:fixed;top:20px;right:20px;background:#de350b;color:#fff;padding:12px 20px;border-radius:8px;z-index:9999;font-size:13px;font-weight:500;max-width:400px';el.textContent='Erro de conexão: '+e.message;document.body.appendChild(el);setTimeout(()=>el.remove(),5000);
   }
+  if(btn){btn.disabled=false;btn.innerHTML='<svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px"><path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zm-1.27 0a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.163 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.163 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.163 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zm0-1.27a2.527 2.527 0 0 1-2.52-2.523 2.527 2.527 0 0 1 2.52-2.52h6.315A2.528 2.528 0 0 1 24 15.163a2.528 2.528 0 0 1-2.522 2.523h-6.315z"/></svg> Enviar';}
 }
 
 // ═══════ EXPORT ═══════
