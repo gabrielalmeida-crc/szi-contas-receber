@@ -5,6 +5,18 @@ const path = require('path');
 
 const PORT = process.env.PORT || 3737;
 
+// ── Cache em memória (TTL 5 min) ──
+const CACHE = {};
+const CACHE_TTL = 5 * 60 * 1000;
+function cacheKey(endpoint, data) { return endpoint + '|' + JSON.stringify(data); }
+function cacheGet(key) {
+  const e = CACHE[key];
+  if (e && Date.now() - e.ts < CACHE_TTL) return e.data;
+  if (e) delete CACHE[key];
+  return null;
+}
+function cacheSet(key, data) { CACHE[key] = { data, ts: Date.now() }; }
+
 const server = http.createServer((req, res) => {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -42,6 +54,14 @@ const server = http.createServer((req, res) => {
       catch { res.writeHead(400, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'JSON inválido' })); return; }
 
       const endpoint = payload.endpoint || '/api/v1/financas/contareceber/';
+      const ck = cacheKey(endpoint, payload.data);
+      const cached = cacheGet(ck);
+      if (cached) {
+        res.writeHead(200, { 'Content-Type': 'application/json', 'X-Cache': 'HIT' });
+        res.end(cached);
+        return;
+      }
+
       const postData = JSON.stringify(payload.data);
 
       const opts = {
@@ -56,7 +76,8 @@ const server = http.createServer((req, res) => {
         let data = '';
         omieRes.on('data', chunk => { data += chunk; });
         omieRes.on('end', () => {
-          res.writeHead(omieRes.statusCode, { 'Content-Type': 'application/json' });
+          if (omieRes.statusCode === 200) cacheSet(ck, data);
+          res.writeHead(omieRes.statusCode, { 'Content-Type': 'application/json', 'X-Cache': 'MISS' });
           res.end(data);
         });
       });

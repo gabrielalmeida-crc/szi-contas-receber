@@ -230,7 +230,7 @@
       Slack
     </button>
     <button class="btn" onclick="abrirCfg()">⚙️ Configurar</button>
-    <button class="btn btn-blue" onclick="carregarTudo()">🔄 Atualizar</button>
+    <button class="btn btn-blue" onclick="carregarTudo(true)">🔄 Atualizar</button>
   </div>
 </header>
 
@@ -346,7 +346,29 @@ let ALL=[],FILT=[],CATS={},CLIS={},PG=1;const PP=50;let SORT={c:'data_vencimento
 const CAT_EXCLUIR=['transferência entre contas','transferencia entre contas','entrada de transferência','saída de transferência','entrada de transferencia','saida de transferencia'];
 
 // ═══════ LOAD ═══════
-async function carregarTudo(){const c=cfg();if(!c.app_key){hide();abrirCfg();return}
+const LCACHE_KEY='szi_cr_cache';
+const LCACHE_TTL=5*60*1000;
+function saveLocalCache(){try{localStorage.setItem(LCACHE_KEY,JSON.stringify({ts:Date.now(),ALL,CATS,CLIS}))}catch(e){}}
+function loadLocalCache(){try{const d=JSON.parse(localStorage.getItem(LCACHE_KEY));if(d&&Date.now()-d.ts<LCACHE_TTL){return d}return null}catch{return null}}
+
+async function carregarTudo(forceRefresh){const c=cfg();if(!c.app_key){hide();abrirCfg();return}
+// Tentar cache local primeiro (carrega instantâneo)
+if(!forceRefresh){
+  const lc=loadLocalCache();
+  if(lc){
+    ALL=lc.ALL;Object.assign(CATS,lc.CATS);Object.assign(CLIS,lc.CLIS);
+    ALL=ALL.map(enrich);
+    const antes=ALL.length;
+    ALL=ALL.filter(t=>{const cn=(t.categoria_nome||'').toLowerCase();return!CAT_EXCLUIR.some(ex=>cn.includes(ex))});
+    popFilters();filtrar();
+    const age=Math.round((Date.now()-lc.ts)/1000);
+    setSt(true,`${ALL.length} títulos · cache ${age}s atrás`);
+    hide();
+    // Atualizar em background silenciosamente
+    setTimeout(()=>carregarTudo(true),500);
+    return;
+  }
+}
 show('Carregando categorias...');
 try{
   await loadCats();
@@ -355,10 +377,10 @@ try{
   show('Carregando clientes...');
   await loadClis([...new Set(ALL.map(t=>t.codigo_cliente_fornecedor).filter(Boolean))]);
   ALL=ALL.map(enrich);
-  // Excluir categorias que não são receita (ex: transferências)
   const antes=ALL.length;
   ALL=ALL.filter(t=>{const cn=(t.categoria_nome||'').toLowerCase();return!CAT_EXCLUIR.some(ex=>cn.includes(ex))});
   if(ALL.length<antes)console.log(`Excluídos ${antes-ALL.length} títulos de categorias de transferência`);
+  saveLocalCache();
   popFilters();filtrar();
   setSt(true,`${ALL.length} títulos · ${hora()}`);
 }catch(e){console.error(e);setSt(false,e.message)}
