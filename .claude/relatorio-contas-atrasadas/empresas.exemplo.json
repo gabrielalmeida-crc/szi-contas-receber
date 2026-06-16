@@ -1,0 +1,4 @@
+[
+  { "nome": "Nome da Empresa 1", "app_key": "APP_KEY_AQUI", "app_secret": "APP_SECRET_AQUI" },
+  { "nome": "Nome da Empresa 2", "app_key": "APP_KEY_AQUI", "app_secret": "APP_SECRET_AQUI" }
+]
