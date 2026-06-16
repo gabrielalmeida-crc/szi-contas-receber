@@ -1,0 +1,49 @@
+name: Relatório Contas a Receber Atrasadas
+
+# Dispara o relatório diário de Contas a Receber ATRASADAS no Slack do Gabriel.
+# Roda 100% na nuvem (GitHub) — não depende do PC nem do app Claude aberto.
+# Apenas chama o endpoint na Render, que faz todo o trabalho (Omie + Slack).
+
+on:
+  schedule:
+    # 11:00 UTC = 08:00 BRT (UTC-3), de segunda a sexta.
+    - cron: "0 11 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      dry:
+        description: "Modo preview (não envia DM)"
+        type: boolean
+        default: false
+
+jobs:
+  disparar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Chamar endpoint do relatório
+        env:
+          TRIGGER_TOKEN: ${{ secrets.TRIGGER_TOKEN }}
+          DRY: ${{ github.event.inputs.dry }}
+        run: |
+          BASE="https://szi-contas-receber.onrender.com/api/relatorio-atrasados"
+          URL="${BASE}?token=${TRIGGER_TOKEN}"
+          if [ "${DRY}" = "true" ]; then URL="${URL}&dry=1"; fi
+
+          echo "Disparando relatório (dry=${DRY:-false})..."
+          # Render pode estar em cold start; aguarda até ~90s na 1ª tentativa.
+          RESP=$(curl -s --max-time 120 -w "\nHTTP_%{http_code}" -X POST "$URL")
+          CODE=$(echo "$RESP" | grep -o 'HTTP_[0-9]*' | tail -1 | cut -d_ -f2)
+          BODY=$(echo "$RESP" | sed 's/HTTP_[0-9]*$//')
+
+          # Mascara o token caso apareça em qualquer log
+          echo "Resposta (HTTP $CODE): $(echo "$BODY" | sed 's/'"${TRIGGER_TOKEN}"'/***/g')"
+
+          if [ "$CODE" != "200" ]; then
+            echo "::error::Falha HTTP $CODE"
+            exit 1
+          fi
+          if echo "$BODY" | grep -q '"ok":true'; then
+            echo "✅ Sucesso."
+          else
+            echo "::error::Resposta sem ok:true"
+            exit 1
+          fi
